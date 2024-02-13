@@ -26,7 +26,9 @@ type serverStatusForATimeStamp struct {
 
 func main1() {
 	// processEachElement("AyushKumarAnand")
-	fmt.Println("GeneratedFileName is: ", generateFileName())
+	//fmt.Println("GeneratedFileName is: ", generateFileName())
+	Result := averageTimeInstanceBetweenTwoGamePingLog()
+	fmt.Println("The result is: ", Result)
 }
 
 func main() {
@@ -37,7 +39,7 @@ func main() {
 		SplittedstringList := SplittedstringList1[:len(SplittedstringList1)-1]
 		Result := test(SplittedstringList, "pokerserv90")
 		// test(SplittedstringList, "pokerserv90")
-		fmt.Println("The result is: ", Result[0])
+		fmt.Println("The result is: ", Result)
 	} else {
 		fmt.Println("The error encouneterd while reading the file is: ", err)
 	}
@@ -50,8 +52,18 @@ func test(StringSlice []string, ServerNameToProcess string) []serverStatusForATi
 		if true {
 			// fmt.Printf("The data at index: %d is: %s. \n", i, StringSlice[i])
 			Res, err := processEachElement(StringSlice[i], ServerNameToProcess)
+			if len(Res.differentServerStatuses) != 0 {
+				fmt.Println("Ayush: ", Res.differentServerStatuses[0].serverStatus)
+			}
 			if err == nil {
-				Result = append(Result, Res)
+				if len(Res.differentServerStatuses) == 0 || strings.TrimSpace(Res.differentServerStatuses[0].serverStatus) != "OK" {
+					//fmt.Printf("The res of processEachElement is: %+v.\n", Res)
+					if len(Res.differentServerStatuses) == 0 {
+						Res.differentServerStatuses = []serverStatus{{serverName: ServerNameToProcess, serverStatus: "UNDEFINED "}}
+					}
+					Result = append(Result, Res)
+					//fmt.Println("The new result is: ", Result)
+				}
 			} else {
 				fmt.Println("Error : ", err)
 			}
@@ -63,7 +75,7 @@ func test(StringSlice []string, ServerNameToProcess string) []serverStatusForATi
 func processEachElement(StringElement string, ServerNameToProcess string) (serverStatusForATimeStamp, error) {
 	Pattern := fmt.Sprintf("%s=[A-Z]+\\s{1}", ServerNameToProcess)
 	// RegExpPtr, _ := regexp.Compile("[a-zA-Z0-9]+=[A-Z]+\\s{1}")
-	// fmt.Println("The regular expression pattern is: ", Pattern)
+	//fmt.Println("The regular expression pattern is: ", Pattern)
 	RegExpPtr, _ := regexp.Compile(Pattern)
 	AllMatchingStringSlice1 := RegExpPtr.FindAllString(StringElement, len(StringElement))
 	// fmt.Println("All matching strings are: ", AllMatchingStringSlice1)
@@ -122,6 +134,8 @@ func generateFileNameHelper(num int) string {
 	}
 }
 
-func process_game_server_log(inputData []serverStatusForATimeStamp){
-	
+func process_game_server_log(inputData []serverStatusForATimeStamp) {
+
 }
+
+func createEmptyHourFile()
