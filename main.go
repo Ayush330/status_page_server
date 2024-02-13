@@ -24,14 +24,20 @@ type serverStatusForATimeStamp struct {
 	samplingHour            int
 }
 
-func main1() {
-	// processEachElement("AyushKumarAnand")
-	//fmt.Println("GeneratedFileName is: ", generateFileName())
-	Result := averageTimeInstanceBetweenTwoGamePingLog()
-	fmt.Println("The result is: ", Result)
+type incidentsAtAGivenHour struct {
+	hour      int
+	incidents int
 }
 
 func main() {
+	// processEachElement("AyushKumarAnand")
+	//fmt.Println("GeneratedFileName is: ", generateFileName())
+	// Result := averageTimeInstanceBetweenTwoGamePingLog()
+	// fmt.Println("The result is: ", Result)
+	createEmptyHourFile()
+}
+
+func main1() {
 	Bytes, err := os.ReadFile("/Users/ayushanand/status_page_server/2024-01-01-game-servers-ping.log")
 	if err == nil {
 		SplittedstringList1 := strings.Split(string(Bytes), "\n")
@@ -138,4 +144,11 @@ func process_game_server_log(inputData []serverStatusForATimeStamp) {
 
 }
 
-func createEmptyHourFile()
+func createEmptyHourFile() []incidentsAtAGivenHour {
+	Result := make([]incidentsAtAGivenHour, 24)
+	for i := 1; i < 25; i++ {
+		Result[i-1].hour = i
+	}
+	fmt.Println("The result is: ", Result)
+	return Result
+}
