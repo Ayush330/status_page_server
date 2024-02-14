@@ -34,7 +34,6 @@ func generatePreviousDayGameLogFileName(currDate string) string {
 	dateInCorrectFormat := dateInCorrectFormatCurr.AddDate(0, 0, -1)
 	year, month, day := dateInCorrectFormat.Date()
 	if err == nil {
-		// fmt.Printf("The parsed date is : %s-%s-%s\n", generateFileNameHelper(year), generateFileNameHelper(int(month)), generateFileNameHelper(day))
 		return fmt.Sprintf("./%s-%s-%s-pokerv2-online.log", generateFileNameHelper(year), generateFileNameHelper(int(month)), generateFileNameHelper(day))
 	} else {
 		fmt.Println("The error in parsing the date is : ", err.Error())
