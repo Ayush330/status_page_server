@@ -29,28 +29,31 @@ type incidentsAtAGivenHour struct {
 	incidents int
 }
 
-func main() {
+func main2() {
 	// processEachElement("AyushKumarAnand")
 	//fmt.Println("GeneratedFileName is: ", generateFileName())
 	// Result := averageTimeInstanceBetweenTwoGamePingLog()
 	// fmt.Println("The result is: ", Result)
 	// EmptyHourFile := createEmptyHourFile()
-	// mainGameUser()
-	fmt.Println("Curr day filename is: ", generateGameLogFileNameFromDate("2024-01-01"))
-	fmt.Println("Previous day filename is: ", generatePreviousDayGameLogFileName("2024-01-01"))
+	TimeStart := time.Now().UnixNano()
+	Res := mainGameUser("2024-01-02")
+	TimeEnd := time.Now().UnixNano()
+	fmt.Println("The diff to run the above computation in nanoseconds is: ", (TimeEnd - TimeStart))
+	fmt.Println("Result is: ", Res)
+	// fmt.Println("Curr day filename is: ", generateGameLogFileNameFromDate("2024-01-01"))
+	// fmt.Println("Previous day filename is: ", generatePreviousDayGameLogFileName("2024-01-01"))
 }
 
-func main1() {
-	EmptyHourFile := createEmptyHourFile()
+func main() {
+	//EmptyHourFile := createEmptyHourFile()
 	Bytes, err := os.ReadFile("/Users/ayushanand/status_page_server/2024-01-01-game-servers-ping.log")
 	if err == nil {
 		SplittedstringList1 := strings.Split(string(Bytes), "\n")
 		// Last line is a white space so I am removing it.
 		SplittedstringList := SplittedstringList1[:len(SplittedstringList1)-1]
-		Result := test(SplittedstringList, "pokerserv90")
-		// test(SplittedstringList, "pokerserv90")
-		// fmt.Printf("The result is: %+v\n", Result[1:10])
-		process_game_server_log(Result, EmptyHourFile)
+		ResultHelper := test(SplittedstringList, "pokerserv90")
+		Result := process_game_server_log(ResultHelper)
+		fmt.Println("The result is:", Result)
 	} else {
 		fmt.Println("The error encouneterd while reading the file is: ", err)
 	}
@@ -126,16 +129,15 @@ func generateFileName() string {
 	return fmt.Sprintf("%d-%s-%s%s\n", Year, generateFileNameHelper(MonthInteger), generateFileNameHelper(Day), Suffix)
 }
 
-func process_game_server_log(inputData []serverStatusForATimeStamp, tempOutputData []incidentsAtAGivenHour) {
-	for index, incidentData := range tempOutputData {
-		hourThis := incidentData.hour
+func process_game_server_log(inputData []serverStatusForATimeStamp) map[int]int {
+	result := make(map[int]int)
+
+	for hourThis := 0; hourThis < 24; hourThis++ {
 		incidentsAtCurrHour := process_game_server_log_helper(hourThis, inputData)
-		tempOutputData[index] = incidentsAtAGivenHour{
-			hour:      hourThis,
-			incidents: incidentsAtCurrHour,
-		}
+		result[hourThis] = incidentsAtCurrHour
 	}
-	fmt.Println("Result is: ", tempOutputData)
+	// fmt.Println("Result is: ", result)
+	return result
 }
 
 func process_game_server_log_helper(hour int, inputData []serverStatusForATimeStamp) int {
