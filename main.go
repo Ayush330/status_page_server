@@ -25,7 +25,9 @@ type serverStatusForATimeStamp struct {
 }
 
 func main() {
-	process_ping_file("2024-01-02")
+	// process_ping_file("2024-01-02")
+	soln := solution(3, []string{"hackerearth", "contests", "back"})
+	fmt.Println("The solution is: ", soln)
 }
 
 func main2() {
@@ -137,7 +139,6 @@ func process_game_server_log_helper(hour int, inputData []serverStatusForATimeSt
 			resultCount += 1
 			counter = 0
 		}
-
 	}
 	return resultCount
 }
