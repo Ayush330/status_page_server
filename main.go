@@ -34,10 +34,14 @@ func main() {
 	//fmt.Println("GeneratedFileName is: ", generateFileName())
 	// Result := averageTimeInstanceBetweenTwoGamePingLog()
 	// fmt.Println("The result is: ", Result)
-	createEmptyHourFile()
+	// EmptyHourFile := createEmptyHourFile()
+	// mainGameUser()
+	fmt.Println("Curr day filename is: ", generateGameLogFileNameFromDate("2024-01-01"))
+	fmt.Println("Previous day filename is: ", generatePreviousDayGameLogFileName("2024-01-01"))
 }
 
 func main1() {
+	EmptyHourFile := createEmptyHourFile()
 	Bytes, err := os.ReadFile("/Users/ayushanand/status_page_server/2024-01-01-game-servers-ping.log")
 	if err == nil {
 		SplittedstringList1 := strings.Split(string(Bytes), "\n")
@@ -45,7 +49,8 @@ func main1() {
 		SplittedstringList := SplittedstringList1[:len(SplittedstringList1)-1]
 		Result := test(SplittedstringList, "pokerserv90")
 		// test(SplittedstringList, "pokerserv90")
-		fmt.Println("The result is: ", Result)
+		// fmt.Printf("The result is: %+v\n", Result[1:10])
+		process_game_server_log(Result, EmptyHourFile)
 	} else {
 		fmt.Println("The error encouneterd while reading the file is: ", err)
 	}
@@ -59,16 +64,18 @@ func test(StringSlice []string, ServerNameToProcess string) []serverStatusForATi
 			// fmt.Printf("The data at index: %d is: %s. \n", i, StringSlice[i])
 			Res, err := processEachElement(StringSlice[i], ServerNameToProcess)
 			if len(Res.differentServerStatuses) != 0 {
-				fmt.Println("Ayush: ", Res.differentServerStatuses[0].serverStatus)
+				// fmt.Println("Ayush: ", Res.differentServerStatuses[0].serverStatus)
 			}
 			if err == nil {
-				if len(Res.differentServerStatuses) == 0 || strings.TrimSpace(Res.differentServerStatuses[0].serverStatus) != "OK" {
+				if len(Res.differentServerStatuses) == 0 {
 					//fmt.Printf("The res of processEachElement is: %+v.\n", Res)
 					if len(Res.differentServerStatuses) == 0 {
 						Res.differentServerStatuses = []serverStatus{{serverName: ServerNameToProcess, serverStatus: "UNDEFINED "}}
 					}
 					Result = append(Result, Res)
 					//fmt.Println("The new result is: ", Result)
+				} else {
+					Result = append(Result, Res)
 				}
 			} else {
 				fmt.Println("Error : ", err)
@@ -110,19 +117,6 @@ func parseServerStatus(serverStatusInput string) serverStatus {
 	}
 }
 
-func timeConversion(TimeStampInSeconds int64, ServerStatusList []serverStatus) serverStatusForATimeStamp {
-	Time := time.Unix(TimeStampInSeconds, 0).Local().UTC()
-	Year, Month, Day := Time.Date()
-	return serverStatusForATimeStamp{
-		differentServerStatuses: ServerStatusList,
-		epochTimeStamp:          TimeStampInSeconds,
-		sampledYear:             Year,
-		sampledMonth:            Month,
-		sampledDate:             Day,
-		samplingHour:            Time.Hour(),
-	}
-}
-
 // Code for getting the file name
 
 func generateFileName() string {
@@ -132,16 +126,49 @@ func generateFileName() string {
 	return fmt.Sprintf("%d-%s-%s%s\n", Year, generateFileNameHelper(MonthInteger), generateFileNameHelper(Day), Suffix)
 }
 
-func generateFileNameHelper(num int) string {
-	if int(num/10) == 0 {
-		return fmt.Sprintf("0%d", num)
-	} else {
-		return fmt.Sprintf("%d", num)
+func process_game_server_log(inputData []serverStatusForATimeStamp, tempOutputData []incidentsAtAGivenHour) {
+	for index, incidentData := range tempOutputData {
+		hourThis := incidentData.hour
+		incidentsAtCurrHour := process_game_server_log_helper(hourThis, inputData)
+		tempOutputData[index] = incidentsAtAGivenHour{
+			hour:      hourThis,
+			incidents: incidentsAtCurrHour,
+		}
 	}
+	fmt.Println("Result is: ", tempOutputData)
 }
 
-func process_game_server_log(inputData []serverStatusForATimeStamp) {
+func process_game_server_log_helper(hour int, inputData []serverStatusForATimeStamp) int {
+	filteredData := process_game_server_log_helper2(hour, inputData)
+	resultCount := 0
+	counter := 0
+	for _, data := range filteredData {
+		if strings.TrimSpace(data.differentServerStatuses[0].serverStatus) != "OK" {
+			counter++
+		} else {
+			if counter == 3 {
+				resultCount += 1
+			}
+			counter = 0
+		}
+		if counter == 3 {
+			resultCount += 1
+			counter = 0
+		}
 
+	}
+	// fmt.Printf("The net count fo hour %d is %d.\n", hour, resultCount)
+	return resultCount
+}
+
+func process_game_server_log_helper2(hour int, inputData []serverStatusForATimeStamp) []serverStatusForATimeStamp {
+	var filteredData []serverStatusForATimeStamp
+	for _, serverDetail := range inputData {
+		if serverDetail.samplingHour == hour {
+			filteredData = append(filteredData, serverDetail)
+		}
+	}
+	return filteredData
 }
 
 func createEmptyHourFile() []incidentsAtAGivenHour {
