@@ -17,12 +17,43 @@ type userLog struct {
 	samplingHour      int
 }
 
-func mainGameUser(CurrDate string) []map[int]int {
+func mainGameUser(CurrDate string) map[int]bool {
 	CurrFileName := generateGameLogFileNameFromDate(CurrDate)
 	PreviousDayFileName := generatePreviousDayGameLogFileName(CurrDate)
-	CurrDayData := mainGameUserHelper(CurrFileName)
-	PrevDayData := mainGameUserHelper(PreviousDayFileName)
-	return []map[int]int{CurrDayData, PrevDayData}
+	CurrDayData1 := mainGameUserHelper(CurrFileName)
+	PrevDayData1 := mainGameUserHelper(PreviousDayFileName)
+	CurrDayData := sanitizeData(CurrDayData1)
+	PrevDayData := sanitizeData(PrevDayData1)
+	return generateResult(CurrDayData, PrevDayData)
+	//return []map[int]int{CurrDayData, PrevDayData}
+}
+
+func generateResult(CurrDayData map[int]int, PrevDayData map[int]int) map[int]bool {
+	Result := make(map[int]bool, 24)
+	for key, CurrDayDataForTheGivenKey := range CurrDayData {
+		if CurrDayDataForTheGivenKey != 0 {
+			PrevDayDataForTheGivenKey := PrevDayData[key]
+			DeltaChangePercentage := (float64(PrevDayDataForTheGivenKey-CurrDayDataForTheGivenKey) / float64(PrevDayDataForTheGivenKey)) * 100.00
+			if DeltaChangePercentage > 10 {
+				Result[key] = true
+			} else {
+				Result[key] = false
+			}
+		} else {
+			Result[key] = false
+		}
+	}
+	return Result
+}
+
+func sanitizeData(data map[int]int) map[int]int {
+	for i := 0; i < 24; i++ {
+		_, ok := data[i]
+		if !ok {
+			data[i] = 0
+		}
+	}
+	return data
 }
 
 func mainGameUserHelper(FileName string) map[int]int {
@@ -39,7 +70,7 @@ func accumulate_results_per_hour(input []userLog) map[int]int {
 	result := make(map[int]int)
 	for _, data := range input {
 		val, ok := result[data.samplingHour]
-		if ok == true {
+		if ok  {
 			result[data.samplingHour] = val + data.averageNumOfUsers
 		} else {
 			result[data.samplingHour] = data.averageNumOfUsers
@@ -79,12 +110,4 @@ func formatAndConvertToStruct(input []string) []userLog {
 		outputData[index] = UserLog
 	}
 	return outputData
-}
-
-func format(input []string) []string {
-	for index, Element := range input {
-		ModfEl1 := strings.TrimSpace(Element)
-		input[index] = ModfEl1
-	}
-	return input
 }

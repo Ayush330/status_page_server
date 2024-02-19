@@ -24,21 +24,60 @@ type serverStatusForATimeStamp struct {
 	samplingHour            int
 }
 
-func main() {
-	// process_ping_file("2024-01-02")
-	soln := solution(3, []string{"hackerearth", "contests", "back"})
-	fmt.Println("The solution is: ", soln)
+type GameDataStruct struct {
+	hour       int
+	quantifier int
 }
 
-func main2() {
+type ResponseRawStruct struct {
+	gameData []GameDataStruct
+	gameName string
+}
+
+// func main() {
+// 	// process_ping_file("2024-01-02")
+// 	soln := solution(3, []string{"hackerearth", "contests", "back"})
+// 	fmt.Println("The solution is: ", soln)
+// }
+
+func main() {
 	TimeStart := time.Now().UnixNano()
-	Res := mainGameUser("2024-01-02")
+	PingSpecificData := process_ping_file("2024-01-02")
+	GameSpecificData := mainGameUser("2024-01-02")
 	TimeEnd := time.Now().UnixNano()
 	fmt.Println("The diff to run the above computation in nanoseconds is: ", (TimeEnd - TimeStart))
-	fmt.Println("Result is: ", Res)
+	fmt.Printf("The PingSpecificData is: %v and the GameSpecidifc Data is: %v.\n", PingSpecificData, GameSpecificData)
+	Res := generateResultForSocialGames(PingSpecificData, GameSpecificData)
+	fmt.Printf("The actual result is: %+v.\n", Res)
 }
 
-func process_ping_file(date string) {
+func generateResultForSocialGames(PingSpecificData map[int]int, GameSpecificData map[int]bool) ResponseRawStruct {
+	Response := ResponseRawStruct{
+		gameData: make([]GameDataStruct, 24),
+		gameName: "testing_social_game",
+	}
+	IntermediatryResponse := Response.gameData
+	for currHour, pingSpecificDataForTheGivenHour := range PingSpecificData {
+		userSpecificDataForTheGivenHour := GameSpecificData[currHour]
+		if pingSpecificDataForTheGivenHour > 0 && userSpecificDataForTheGivenHour {
+			IntermediatryResponse[currHour] = GameDataStruct{
+				hour:       currHour,
+				quantifier: pingSpecificDataForTheGivenHour,
+			}
+			//pingSpecificDataForTheGivenHour
+		} else {
+			IntermediatryResponse[currHour] = GameDataStruct{
+				hour:       currHour,
+				quantifier: 0,
+			}
+		}
+	}
+	// return Response.gameData
+	Response.gameData = IntermediatryResponse
+	return Response
+}
+
+func process_ping_file(date string) map[int]int {
 	Bytes, err := os.ReadFile("/Users/ayushanand/status_page_server/2024-01-01-game-servers-ping.log")
 	if err == nil {
 		SplittedstringList1 := strings.Split(string(Bytes), "\n")
@@ -47,8 +86,11 @@ func process_ping_file(date string) {
 		ResultHelper := test(SplittedstringList, "pokerserv90")
 		Result := process_game_server_log(ResultHelper)
 		fmt.Println("The result of process_ping_file is:", Result)
+		return Result
 	} else {
+		// Result := make(map[int]int)
 		fmt.Println("The error encouneterd while reading the file is: ", err)
+		return make(map[int]int)
 	}
 }
 
@@ -57,8 +99,6 @@ func test(StringSlice []string, ServerNameToProcess string) []serverStatusForATi
 	for i := 0; i < len(StringSlice); i++ {
 		if true {
 			Res, err := processEachElement(StringSlice[i], ServerNameToProcess)
-			if len(Res.differentServerStatuses) != 0 {
-			}
 			if err == nil {
 				if len(Res.differentServerStatuses) == 0 {
 					if len(Res.differentServerStatuses) == 0 {
@@ -102,15 +142,6 @@ func parseServerStatus(serverStatusInput string) serverStatus {
 		serverName:   parts[0],
 		serverStatus: parts[1],
 	}
-}
-
-// Code for getting the file name
-
-func generateFileName() string {
-	Suffix := "-game-servers-ping.log"
-	Year, Month, Day := time.Now().UTC().Date()
-	MonthInteger := int(Month)
-	return fmt.Sprintf("%d-%s-%s%s\n", Year, generateFileNameHelper(MonthInteger), generateFileNameHelper(Day), Suffix)
 }
 
 func process_game_server_log(inputData []serverStatusForATimeStamp) map[int]int {
