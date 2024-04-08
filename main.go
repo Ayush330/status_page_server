@@ -1,185 +1,101 @@
 package main
 
 import (
-	"errors"
+	"context"
+	"encoding/json"
 	"fmt"
-	"os"
-	"regexp"
-	"strconv"
-	"strings"
+	"net/http"
 	"time"
+
+	"github.com/redis/go-redis/v9"
 )
 
-type serverStatus struct {
-	serverName   string
-	serverStatus string
+type BodyGo struct {
+	Date     string `json:"date"`
+	GameName string `json:"game_name"`
 }
 
-type serverStatusForATimeStamp struct {
-	differentServerStatuses []serverStatus
-	epochTimeStamp          int64
-	sampledYear             int
-	sampledMonth            time.Month
-	sampledDate             int
-	samplingHour            int
-}
-
-type GameDataStruct struct {
-	hour       int
-	quantifier int
-}
-
-type ResponseRawStruct struct {
-	gameData []GameDataStruct
-	gameName string
-}
-
-// func main() {
-// 	// process_ping_file("2024-01-02")
-// 	soln := solution(3, []string{"hackerearth", "contests", "back"})
-// 	fmt.Println("The solution is: ", soln)
-// }
+const webPort = ":8080"
 
 func main() {
-	TimeStart := time.Now().UnixNano()
-	PingSpecificData := process_ping_file("2024-01-02")
-	GameSpecificData := mainGameUser("2024-01-02")
-	TimeEnd := time.Now().UnixNano()
-	fmt.Println("The diff to run the above computation in nanoseconds is: ", (TimeEnd - TimeStart))
-	fmt.Printf("The PingSpecificData is: %v and the GameSpecidifc Data is: %v.\n", PingSpecificData, GameSpecificData)
-	Res := generateResultForSocialGames(PingSpecificData, GameSpecificData)
-	fmt.Printf("The actual result is: %+v.\n", Res)
+	go redisMain()
+	http.HandleFunc("/fetchData", fetchData)
+	http.HandleFunc("/fetchDataPastIncidents", fetchDataPastIncidents)
+	http.ListenAndServe(webPort, nil)
 }
 
-func generateResultForSocialGames(PingSpecificData map[int]int, GameSpecificData map[int]bool) ResponseRawStruct {
-	Response := ResponseRawStruct{
-		gameData: make([]GameDataStruct, 24),
-		gameName: "testing_social_game",
+func handleCrossOrigin(writer http.ResponseWriter, request *http.Request) {
+	if request.Method == http.MethodOptions {
+		writer.Header().Set("Access-Control-Allow-Origin", "*")
+		writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		writer.Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization")
+		writer.WriteHeader(http.StatusOK)
+		return
 	}
-	IntermediatryResponse := Response.gameData
-	for currHour, pingSpecificDataForTheGivenHour := range PingSpecificData {
-		userSpecificDataForTheGivenHour := GameSpecificData[currHour]
-		if pingSpecificDataForTheGivenHour > 0 && userSpecificDataForTheGivenHour {
-			IntermediatryResponse[currHour] = GameDataStruct{
-				hour:       currHour,
-				quantifier: pingSpecificDataForTheGivenHour,
-			}
-			//pingSpecificDataForTheGivenHour
-		} else {
-			IntermediatryResponse[currHour] = GameDataStruct{
-				hour:       currHour,
-				quantifier: 0,
-			}
+}
+
+func fetchDataPastIncidents(writer http.ResponseWriter, req *http.Request) {
+	fmt.Println("You have a request for fetchDataPastIncidents: ", req)
+	handleCrossOrigin(writer, req)
+	fetchDataPastIncidentsHelper(writer, req)
+}
+
+func fetchDataPastIncidentsHelper(writer http.ResponseWriter, req *http.Request) {
+	time.Sleep(5 * time.Second)
+	writer.Header().Set("Access-Control-Allow-Origin", "*")
+	writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+	writer.Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization")
+	RedisClient := redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379",
+		Password: "",
+		DB:       0,
+	})
+	cntxt := context.Background()
+	val2temp, _ := RedisClient.Do(cntxt, "LRANGE", "data", "0", "-1").Text()
+	val2, _ := RedisClient.Do(cntxt, "LRANGE", "data", "0", "-1").StringSlice()
+	fmt.Println("The val is: ", val2temp)
+	val := make([]IncidentData, len(val2))//[]map[string]interface{}
+	for index, sampleData := range val2{
+		//var incident map[string]interface{}
+		err := json.Unmarshal([]byte(sampleData), &val[index])
+		if err != nil{
+			fmt.Printf("Error Parsing JSON: %v\n", sampleData)
+			continue
 		}
+		//val = append(val, incident)
+		val[index] = val[index]
 	}
-	// return Response.gameData
-	Response.gameData = IntermediatryResponse
-	return Response
+	fmt.Println("Then length of the returned data is: ", len(val2))
+	fmt.Println("The request for the response is: ", val2, "\n", val)
+	fmt.Printf("\n\n")
+	FinalJson, errJson := json.Marshal(val)
+	if errJson == nil{
+		writer.WriteHeader(http.StatusOK)
+		fmt.Fprintf(writer, "%s\n", FinalJson)
+	}else{
+		writer.WriteHeader(http.StatusInternalServerError)
+	}
 }
 
-func process_ping_file(date string) map[int]int {
-	Bytes, err := os.ReadFile("/Users/ayushanand/status_page_server/2024-01-01-game-servers-ping.log")
+func fetchData(writer http.ResponseWriter, request *http.Request) {
+	handleCrossOrigin(writer, request)
+	fetchDataHelper(writer, request)
+}
+
+func fetchDataHelper(writer http.ResponseWriter, request *http.Request) {
+	time.Sleep(5 * time.Second)
+	writer.Header().Set("Access-Control-Allow-Origin", "*")
+	writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+	writer.Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization")
+	BodyPlaceHolder := make([]byte, request.ContentLength)
+	request.Body.Read(BodyPlaceHolder)
+	Body := &BodyGo{}
+	err := json.Unmarshal(BodyPlaceHolder, Body)
 	if err == nil {
-		SplittedstringList1 := strings.Split(string(Bytes), "\n")
-		// Last line is a white space so I am removing it.
-		SplittedstringList := SplittedstringList1[:len(SplittedstringList1)-1]
-		ResultHelper := test(SplittedstringList, "pokerserv90")
-		Result := process_game_server_log(ResultHelper)
-		fmt.Println("The result of process_ping_file is:", Result)
-		return Result
+		Resp, _ := main1(Body.Date, Body.GameName).encodeToJSON()
+		fmt.Println("The Response is: ", Resp)
+		fmt.Fprintf(writer, "%s\n", string(Resp))
 	} else {
-		// Result := make(map[int]int)
-		fmt.Println("The error encouneterd while reading the file is: ", err)
-		return make(map[int]int)
+		fmt.Println("Encountered error while unmarshllaling the request body: ", err)
 	}
-}
-
-func test(StringSlice []string, ServerNameToProcess string) []serverStatusForATimeStamp {
-	Result := make([]serverStatusForATimeStamp, 0)
-	for i := 0; i < len(StringSlice); i++ {
-		if true {
-			Res, err := processEachElement(StringSlice[i], ServerNameToProcess)
-			if err == nil {
-				if len(Res.differentServerStatuses) == 0 {
-					if len(Res.differentServerStatuses) == 0 {
-						Res.differentServerStatuses = []serverStatus{{serverName: ServerNameToProcess, serverStatus: "UNDEFINED "}}
-					}
-					Result = append(Result, Res)
-				} else {
-					Result = append(Result, Res)
-				}
-			} else {
-				fmt.Println("Error : ", err)
-			}
-		}
-	}
-	return Result
-}
-
-func processEachElement(StringElement string, ServerNameToProcess string) (serverStatusForATimeStamp, error) {
-	Pattern := fmt.Sprintf("%s=[A-Z]+\\s{1}", ServerNameToProcess)
-	RegExpPtr, _ := regexp.Compile(Pattern)
-	AllMatchingStringSlice1 := RegExpPtr.FindAllString(StringElement, len(StringElement))
-	AllMatchingStringSlice := make([]serverStatus, len(AllMatchingStringSlice1))
-	for i := 0; i < len(AllMatchingStringSlice1); i++ {
-		AllMatchingStringSlice[i] = parseServerStatus(AllMatchingStringSlice1[i])
-	}
-	AllRemainingPartSlice := RegExpPtr.Split(StringElement, len(StringElement))
-	EpochTimeStamp := strings.TrimSpace(strings.Split(AllRemainingPartSlice[0], " ")[0])
-	EpochTimeStampNumeric, err1 := (strconv.ParseInt(EpochTimeStamp, 10, 64))
-	if err1 == nil {
-		ServerStatusForATimeStamp := timeConversion(EpochTimeStampNumeric, AllMatchingStringSlice)
-		return ServerStatusForATimeStamp, nil
-	} else {
-		fmt.Println("Error while converting string to integer: ", err1)
-		return serverStatusForATimeStamp{}, errors.New(err1.Error())
-	}
-}
-
-func parseServerStatus(serverStatusInput string) serverStatus {
-	parts := strings.Split(serverStatusInput, "=")
-	return serverStatus{
-		serverName:   parts[0],
-		serverStatus: parts[1],
-	}
-}
-
-func process_game_server_log(inputData []serverStatusForATimeStamp) map[int]int {
-	result := make(map[int]int)
-	for hourThis := 0; hourThis < 24; hourThis++ {
-		incidentsAtCurrHour := process_game_server_log_helper(hourThis, inputData)
-		result[hourThis] = incidentsAtCurrHour
-	}
-	return result
-}
-
-func process_game_server_log_helper(hour int, inputData []serverStatusForATimeStamp) int {
-	filteredData := process_game_server_log_helper2(hour, inputData)
-	resultCount := 0
-	counter := 0
-	for _, data := range filteredData {
-		if strings.TrimSpace(data.differentServerStatuses[0].serverStatus) != "OK" {
-			counter++
-		} else {
-			if counter == 3 {
-				resultCount += 1
-			}
-			counter = 0
-		}
-		if counter == 3 {
-			resultCount += 1
-			counter = 0
-		}
-	}
-	return resultCount
-}
-
-func process_game_server_log_helper2(hour int, inputData []serverStatusForATimeStamp) []serverStatusForATimeStamp {
-	var filteredData []serverStatusForATimeStamp
-	for _, serverDetail := range inputData {
-		if serverDetail.samplingHour == hour {
-			filteredData = append(filteredData, serverDetail)
-		}
-	}
-	return filteredData
 }

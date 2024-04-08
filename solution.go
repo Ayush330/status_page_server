@@ -17,7 +17,7 @@ func (t *stack) forward() {
 	t.pointer = min(len(t.el), currVal+1)
 }
 
-func (t *stack) new(element string) {x``
+func (t *stack) new(element string) {
 	// remove all things
 	currIndexTemp := t.pointer
 	currIndex := min(currIndexTemp, 1)

@@ -17,9 +17,9 @@ type userLog struct {
 	samplingHour      int
 }
 
-func mainGameUser(CurrDate string) map[int]bool {
-	CurrFileName := generateGameLogFileNameFromDate(CurrDate)
-	PreviousDayFileName := generatePreviousDayGameLogFileName(CurrDate)
+func mainGameUser(CurrDate string, GameName string) map[int]bool {
+	CurrFileName := generateGameLogFileNameFromDate(CurrDate, GameName)
+	PreviousDayFileName := generatePreviousDayGameLogFileName(CurrDate, GameName)
 	CurrDayData1 := mainGameUserHelper(CurrFileName)
 	PrevDayData1 := mainGameUserHelper(PreviousDayFileName)
 	CurrDayData := sanitizeData(CurrDayData1)
