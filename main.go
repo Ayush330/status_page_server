@@ -61,7 +61,7 @@ func fetchDataPastIncidents(writer http.ResponseWriter, req *http.Request) {
 }
 
 func fetchDataPastIncidentsHelper(writer http.ResponseWriter, req *http.Request) {
-	time.Sleep(5 * time.Second)
+	//time.Sleep(5 * time.Second)
 	writer.Header().Set("Access-Control-Allow-Origin", "*")
 	writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 	writer.Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization")
@@ -110,7 +110,7 @@ func fetchData(writer http.ResponseWriter, request *http.Request) {
 }
 
 func fetchDataHelper(writer http.ResponseWriter, request *http.Request) {
-	time.Sleep(5 * time.Second)
+	//time.Sleep(5 * time.Second)
 	writer.Header().Set("Access-Control-Allow-Origin", "*")
 	writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 	writer.Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization")
