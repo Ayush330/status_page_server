@@ -4,7 +4,8 @@ import (
 	"context"
 	"fmt"
 	"time"
-
+	"strconv"
+	"encoding/json" 
 	"github.com/redis/go-redis/v9"
 )
 
@@ -38,7 +39,7 @@ func redisMain() {
 	for _, gameName := range GamesList {
 		scheduleAndRunEvent(gameName, Redisclient)
 	}
-	scheduleAndRunEvent("poker", Redisclient)
+	//scheduleAndRunEvent("poker", Redisclient)
 	select {}
 }
 
@@ -58,18 +59,32 @@ func scheduleAndRunEvent(GameName string, RedisClient *redis.Client) {
 	scheduleNextRun()
 }
 
-func redisMainHelperForever(GameName string, RedisClient *redis.Client) {
-	ListOfIncidents := getListOfIncidents()
-	fmt.Println("List of Incidents is: ", ListOfIncidents)
+func redisMainHelperForever(GameName string, RedisClient *redis.Client) { 
 	cntxt := context.Background()
-	fmt.Println("The Client Data is: ", RedisClient)
-	// for i := 0; i < len(ListOfIncidents); i++ {
-	// 	Data, _ := json.Marshal(ListOfIncidents[i])
-	// 	client.Do(cntxt, "LPUSH", "data", Data).Result()
-	// }
-
-	val2, _ := RedisClient.Do(cntxt, "LRANGE", "data", "0", "-1").StringSlice()
-	fmt.Println("foo ", val2)
+	fmt.Println("Here: ...........")
+	var Res IncidentData
+	if GameName == "pokerpro" || GameName == "playrummy"{
+		Res = test_redis_data_formation_cash(GameName)
+	}else{
+		Res = test_redis_data_formation(GameName)
+	}
+	fmt.Println("The data is: ", Res)
+	if Res.NumOfIncidents > 0{
+		ResJson, errJson := json.Marshal(Res)
+		if errJson != nil{
+			fmt.Println("Error Encountered While Marshalling Data: ", Res, " With Error: ", errJson)
+		}else{
+			// _, err := RedisClient.Do(cntxt, "LPUSH", "data", ResJson).Text()
+			SecondsIn5Days := 5 * 24 * 60 * 60
+			ExpiryTime := time.Now().Unix() + int64(SecondsIn5Days)
+			err := RedisClient.Do(cntxt, "ZADD", "data", strconv.FormatInt(ExpiryTime, 10), ResJson)
+			//err := RedisClient.Do(cntxt, "ZADD", "data", "50", ResJson)
+			//err := RedisClient.Do(cntxt, "ZADD", "data", "60", "ayush")
+			if err != nil{
+				fmt.Println("Failed to push data into Redis because of: ", err, "for the data: ", ResJson)
+			}
+		}
+	}
 }
 
 func getListOfIncidents() []IncidentData {
@@ -79,4 +94,56 @@ func getListOfIncidents() []IncidentData {
 		{"2024-01-31", 0, "indian_rummy"},
 		{"2024-01-31", 0, "social_poker"},
 	}
+}
+
+func setHourlyDataUpdationRedis(){
+	// loop, that will run at every 1 hrs
+	// define the keys with ttl of exactly 1 hrs->
+	// 1. indian_rummy
+	// 2. social_poker
+	// 3. teenpatti
+	// 4. playrummy
+	// 5. pokerpro
+	GameNamesList := []string{
+		"indian_rummy",
+		"social_poker",
+		"teenpatti",
+		"playrummy",
+		"pokerpro",
+	}
+	for _, gameName := range GameNamesList{
+		fmt.Println("GameNames Are: ", gameName)
+		setHourlyDataUpdationRedisHelper(gameName)
+	}
+	select {}
+}
+
+func setHourlyDataUpdationRedisHelper(GameName string){
+	RedisClient := redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379",
+		Password: "",
+		DB:       0,
+	})
+	nextEvent := func(){
+		durationUntilNextTime, _ := time.ParseDuration("1m")
+		time.AfterFunc(durationUntilNextTime, func(){
+			fmt.Println("In Here")
+			setHourlyDataUpdationRedisHelper2(GameName, RedisClient)
+			setHourlyDataUpdationRedisHelper(GameName)
+		})
+	}
+	nextEvent()
+}
+
+func setHourlyDataUpdationRedisHelper2(GameName string, RedisClient *redis.Client){
+	cntxt := context.Background()
+	//Date := time.Now().Format(time.DateOnly)
+	Date := "2024-01-02"
+	Resp, _ := main1(Date, GameName).encodeToJSON()
+	//fmt.Println("Response is: ", Resp)
+	//fmt.Println("The error is: ", Err)
+	SecondsIn1Min := 60
+	//ExpiryTime := time().Now().Unix() + int64(SecondsIn1Min)
+	err := RedisClient.Do(cntxt, "SET", GameName, Resp, "EX", SecondsIn1Min)
+	fmt.Println("The error is: ", err)
 }
