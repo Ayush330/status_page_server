@@ -104,13 +104,13 @@ func setHourlyDataUpdationRedis(){
 	// 3. teenpatti
 	// 4. playrummy
 	// 5. pokerpro
-	GameNamesList := []string{
-		"indian_rummy",
-		"social_poker",
-		"teenpatti",
-		"playrummy",
-		"pokerpro",
-	}
+	// GameNamesList := []string{
+	// 	"indian_rummy",
+	// 	"social_poker",
+	// 	"teenpatti",
+	// 	"playrummy",
+	// 	"pokerpro",
+	// }
 	for _, gameName := range GameNamesList{
 		fmt.Println("GameNames Are: ", gameName)
 		setHourlyDataUpdationRedisHelper(gameName)
@@ -139,11 +139,11 @@ func setHourlyDataUpdationRedisHelper2(GameName string, RedisClient *redis.Clien
 	cntxt := context.Background()
 	//Date := time.Now().Format(time.DateOnly)
 	Date := "2024-01-02"
-	Resp, _ := main1(Date, GameName).encodeToJSON()
-	//fmt.Println("Response is: ", Resp)
-	//fmt.Println("The error is: ", Err)
-	SecondsIn1Min := 60
-	//ExpiryTime := time().Now().Unix() + int64(SecondsIn1Min)
-	err := RedisClient.Do(cntxt, "SET", GameName, Resp, "EX", SecondsIn1Min)
-	fmt.Println("The error is: ", err)
+	Resp1, err := main1(Date, GameName)
+	if err == nil{
+		Resp, _ := Resp1.encodeToJSON()
+		SecondsIn1Min := 60
+		err := RedisClient.Do(cntxt, "SET", GameName, Resp, "EX", SecondsIn1Min)
+		fmt.Println("The error is: ", err)
+	}
 }

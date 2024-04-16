@@ -39,16 +39,21 @@ func (input ResponseRawStruct) encodeToJSON() ([]byte, error) {
 	return json.Marshal(input)
 }
 
-func main1(Date string, GameName string) ResponseRawStruct {
-	TimeStart := time.Now().UnixNano()
+func main1(Date string, GameName string) (ResponseRawStruct, error) {
+	//TimeStart := time.Now().UnixNano()
 	PingSpecificData := process_ping_file(Date, GameName) //("2024-01-02")
-	GameSpecificData := mainGameUser(Date, GameName)      //("2024-01-02")
-	TimeEnd := time.Now().UnixNano()
-	fmt.Println("The diff to run the above computation in nanoseconds is: ", (TimeEnd - TimeStart))
-	fmt.Printf("The PingSpecificData is: %v and the GameSpecidifc Data is: %v.\n", PingSpecificData, GameSpecificData)
-	Res := generateResultForSocialGames(PingSpecificData, GameSpecificData)
-	fmt.Printf("The actual result is: %+v.\n", Res)
-	return Res
+	GameSpecificData, err := mainGameUser(Date, GameName)      //("2024-01-02")
+	//TimeEnd := time.Now().UnixNano()
+	if err == nil{
+		//fmt.Println("The diff to run the above computation in nanoseconds is: ", (TimeEnd - TimeStart))
+		//fmt.Printf("The PingSpecificData is: %v and the GameSpecidifc Data is: %v.\n", PingSpecificData, GameSpecificData)
+		Res := generateResultForSocialGames(PingSpecificData, GameSpecificData)
+		//fmt.Printf("The actual result is: %+v.\n", Res)
+		return Res, nil
+	}else{
+		fmt.Println("The Error is: ", err)
+		return ResponseRawStruct{}, errors.New("Something, wrong happened.......")
+	}
 }
 
 func generateResultForSocialGames(PingSpecificData map[int]int, GameSpecificData map[int]bool) ResponseRawStruct {

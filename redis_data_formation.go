@@ -21,7 +21,7 @@ var pattern_mapping = map[string]string{
 
 func test_redis_data_formation_cash(gameName string) IncidentData{
 	Date := "2024-01-02"
-	Res := mainGameUser(Date, gameName)
+	Res, _ := mainGameUser(Date, gameName)
 	fmt.Println("The Result Is: ", Res)
 	Count := 0
 	for _, failover := range Res{

@@ -16,23 +16,14 @@ type BodyGo struct {
 }
 
 const webPort = ":8080"
-
+var GameNamesList = []string{                                                                                                                 
+                "indian_rummy",                                                                                                                   
+                "social_poker",                                                                                                                   
+                "teenpatti",                                                                                                                      
+                "playrummy",                                                                                                                      
+                "pokerpro",                                                                                                                      
+        }  
 func main() {
-	//fmt.Println("Current Time Is: ", time.Now().Format("2006-01-02"))
-	//test_redis_data_formation_cash("pokerpro")
-	//test_redis_data_formation("teenpatti")
-	//fmt.Println("CurrenTime: ", time.Now().Unix())
-	// DataRedis, errRedis := findData("redis")
-	// if errRedis != nil{
-	// 	fmt.Println("The error for redis is: ", errRedis)
-	// }
-	// fmt.Println("The data for redis is : ", DataRedis)
-
-	// DataWS, errWS := findData("webserver")
-	// if errWS != nil{
-	// 	fmt.Println("The error for webserver is: ", errWS)
-	// }
-	// fmt.Println("The data for webserver is : ", DataWS)
 	go setHourlyDataUpdationRedis()
 	// useful data starts here ............
 	go redisMain()
@@ -118,24 +109,33 @@ func fetchDataHelper(writer http.ResponseWriter, request *http.Request) {
 	request.Body.Read(BodyPlaceHolder)
 	Body := &BodyGo{}
 	err := json.Unmarshal(BodyPlaceHolder, Body)
-	if err == nil {
-		RedisClient := redis.NewClient(&redis.Options{
-			Addr:     "localhost:6379",
-			Password: "",
-			DB:       0,
-		})
-		//Resp, _ := main1(Body.Date, Body.GameName).encodeToJSON()
-		cntxt := context.Background()          
-		Resp, err := RedisClient.Get(cntxt, Body.GameName).Result()
-		if err != nil{
-			Resp1, _ := main1(Body.Date, Body.GameName).encodeToJSON()
-			fmt.Fprintf(writer, "%s\n", string(Resp1))
-		}else{
-			fmt.Println("The Data is: ", err)
-			fmt.Println("The Response is: ", Resp)
-			fmt.Fprintf(writer, "%s\n", string(Resp))
+	if contains(GameNamesList, Body.GameName){
+		if err == nil {
+			RedisClient := redis.NewClient(&redis.Options{
+				Addr:     "localhost:6379",
+				Password: "",
+				DB:       0,
+			})
+			//Resp, _ := main1(Body.Date, Body.GameName).encodeToJSON()
+			cntxt := context.Background()          
+			Resp, err := RedisClient.Get(cntxt, Body.GameName).Result()
+			if err != nil{
+				Resp11, err11 := main1(Body.Date, Body.GameName)
+				if err11 == nil{
+					Resp1, _ := Resp11.encodeToJSON()
+					fmt.Fprintf(writer, "%s\n", string(Resp1))
+				}else{
+					fmt.Println("The error is: ", err11)
+					http.Error(writer, "Issues With File", http.StatusBadRequest)
+					return 
+				}
+			}else{				
+				fmt.Fprintf(writer, "%s\n", string(Resp))
+			}
+		} else {
+			http.Error(writer, "Error Encountered", http.StatusBadRequest)                                           
 		}
-	} else {
-		fmt.Println("Encountered error while unmarshllaling the request body: ", err)
+	}else{
+		http.Error(writer, "Game Not Supported", http.StatusBadRequest)
 	}
 }

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"errors"
 	"os"
 	"regexp"
 	"strconv"
@@ -17,14 +19,19 @@ type userLog struct {
 	samplingHour      int
 }
 
-func mainGameUser(CurrDate string, GameName string) map[int]bool {
+func mainGameUser(CurrDate string, GameName string) (map[int]bool, error) {
 	CurrFileName := generateGameLogFileNameFromDate(CurrDate, GameName)
 	PreviousDayFileName := generatePreviousDayGameLogFileName(CurrDate, GameName)
-	CurrDayData1 := mainGameUserHelper(CurrFileName)
-	PrevDayData1 := mainGameUserHelper(PreviousDayFileName)
+	CurrDayData1, err1 := mainGameUserHelper(CurrFileName)
+	PrevDayData1, err2 := mainGameUserHelper(PreviousDayFileName)
+	//fmt.Println("ErrCurr: ", err1, "\nErrPrev: ", err2)
+	if err1 != nil || err2 != nil{
+		return nil, errors.New("Incorrect Date")
+	}
+	fmt.Println("CurrDayData1: ", CurrDayData1, "\nPrevDayData: ", PrevDayData1)
 	CurrDayData := sanitizeData(CurrDayData1)
 	PrevDayData := sanitizeData(PrevDayData1)
-	return generateResult(CurrDayData, PrevDayData)
+	return generateResult(CurrDayData, PrevDayData), nil
 	//return []map[int]int{CurrDayData, PrevDayData}
 }
 
@@ -56,13 +63,13 @@ func sanitizeData(data map[int]int) map[int]int {
 	return data
 }
 
-func mainGameUserHelper(FileName string) map[int]int {
+func mainGameUserHelper(FileName string) (map[int]int, error) {
 	FileData, err := os.ReadFile(strings.TrimSpace(FileName))
 	if err == nil {
 		Res := mainGameUserHelper1(string(FileData))
-		return accumulate_results_per_hour(Res)
+		return accumulate_results_per_hour(Res), nil
 	} else {
-		panic(err.Error())
+		return nil, errors.New("File Not Exists")
 	}
 }
 

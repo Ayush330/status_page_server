@@ -6,6 +6,16 @@ import (
 	"time"
 )
 
+func contains(slice []string, element string) bool {
+    for _, v := range slice {
+        if v == element {
+            return true
+        }
+    }
+    return false
+}
+
+
 func timeConversion(TimeStampInSeconds int64, ServerStatusList []serverStatus) serverStatusForATimeStamp {
 	Time := time.Unix(TimeStampInSeconds, 0).Local().UTC()
 	Year, Month, Day := Time.Date()
